@@ -1,0 +1,70 @@
+package com.nist.swing;
+
+import java.util.ArrayList;
+
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.table.*;
+
+public class StudentDetails {
+
+    public StudentDetails(ArrayList<Student> studentList) {
+
+        JFrame frame = new JFrame("Student Details");
+        frame.setSize(600, 400);
+        frame.setLayout(null);
+
+        JLabel l1 = new JLabel("Search:");
+        l1.setBounds(280, 10, 60, 30);
+        frame.add(l1);
+
+        JTextField tf1 = new JTextField();
+        tf1.setBounds(340, 10, 200, 30);
+        frame.add(tf1);
+
+        String[] columnNames = {"ID", "Name", "Email", "Address", "Phone", "Gender", "Faculty"};
+        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0);
+        JTable table = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBounds(10, 60, 560, 280);
+        frame.add(scrollPane);
+
+        // Fill table with student data
+        for (Student s : studentList) {
+            tableModel.addRow(new Object[]{
+                s.getId(), s.getName(), s.getEmail(), s.getAddress(),
+                s.getPhone(), s.getGender(), s.getFaculty()
+            });
+        }
+
+        // Enable search filtering
+        TableRowSorter<DefaultTableModel> rowSorter = new TableRowSorter<>(tableModel);
+        table.setRowSorter(rowSorter);
+
+        tf1.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) {
+                filter();
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                filter();
+            }
+
+            public void changedUpdate(DocumentEvent e) {
+                filter();
+            }
+
+            private void filter() {
+                String text = tf1.getText().trim();
+                if (text.length() == 0) {
+                    rowSorter.setRowFilter(null);
+                } else {
+                    rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text)); 
+                }
+            }
+        });
+
+        frame.setVisible(true);
+    }
+}

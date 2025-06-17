@@ -1,0 +1,149 @@
+package com.nist.swing;
+
+import javax.swing.*;
+import java.awt.event.*;
+import java.sql.*;
+import java.util.ArrayList;
+
+public class StudentForm {
+
+    public static Connection getConnection() throws Exception {
+        Class.forName("com.mysql.cj.jdbc.Driver");
+        return DriverManager.getConnection("jdbc:mysql://localhost/cist", "root", "");
+    }
+
+    private JFrame frame;
+    private JTextField nameField, addressField, emailField, phoneField;
+    private JRadioButton male, female;
+    private JComboBox<String> facultyBox;
+
+    public StudentForm() {
+        initUI();
+    }
+
+    private void initUI() {
+        frame = new JFrame("Student Form");
+        frame.setSize(400, 500);
+        frame.setLayout(null);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        addLabel("Name:", 20, 20);
+        nameField = addTextField(140, 20);
+
+        addLabel("Address:", 20, 60);
+        addressField = addTextField(140, 60, 200, 60);
+
+        addLabel("Email:", 20, 140);
+        emailField = addTextField(140, 140);
+
+        addLabel("Phone:", 20, 180);
+        phoneField = addTextField(140, 180);
+
+        addLabel("Gender:", 20, 220);
+        male = new JRadioButton("Male");
+        female = new JRadioButton("Female");
+        male.setBounds(140, 220, 70, 25);
+        female.setBounds(220, 220, 80, 25);
+        ButtonGroup genderGroup = new ButtonGroup();
+        genderGroup.add(male);
+        genderGroup.add(female);
+        frame.add(male);
+        frame.add(female);
+
+        addLabel("Faculty:", 20, 260);
+        String[] faculties = {"BCA", "CSIT", "BIM"};
+        facultyBox = new JComboBox<>(faculties);
+        facultyBox.setBounds(140, 260, 200, 25);
+        frame.add(facultyBox);
+
+        JButton submitButton = new JButton("Submit");
+        submitButton.setBounds(140, 310, 100, 30);
+        frame.add(submitButton);
+
+        submitButton.addActionListener(e -> submitForm());
+
+        frame.setVisible(true);
+    }
+
+    private void addLabel(String text, int x, int y) {
+        JLabel label = new JLabel(text);
+        label.setBounds(x, y, 100, 25);
+        frame.add(label);
+    }
+
+    private JTextField addTextField(int x, int y) {
+        return addTextField(x, y, 200, 25);
+    }
+
+    private JTextField addTextField(int x, int y, int width, int height) {
+        JTextField textField = new JTextField();
+        textField.setBounds(x, y, width, height);
+        frame.add(textField);
+        return textField;
+    }
+
+    private void submitForm() {
+        String name = nameField.getText();
+        String address = addressField.getText();
+        String email = emailField.getText();
+        String phone = phoneField.getText();
+        String gender = male.isSelected() ? "Male" : (female.isSelected() ? "Female" : "Not selected");
+        String faculty = (String) facultyBox.getSelectedItem();
+
+        try (Connection conn = getConnection()) {
+            String sql = "INSERT INTO students (name, address, email, phone, gender, faculty) VALUES (?, ?, ?, ?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, name);
+                stmt.setString(2, address);
+                stmt.setString(3, email);
+                stmt.setString(4, phone);
+                stmt.setString(5, gender);
+                stmt.setString(6, faculty);
+
+                int rows = stmt.executeUpdate();
+                JOptionPane.showMessageDialog(frame,
+                        rows > 0 ? "Student data inserted successfully!" : "Insert failed.");
+                frame.dispose();
+                fetchAndShowStudentList();
+                
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(frame, "Error: " + ex.getMessage());
+        }
+    }
+
+    private void fetchAndShowStudentList() {
+        String query = "SELECT * FROM students";
+        ArrayList<Student> studentList = new ArrayList<>();
+
+        try (
+            Connection conn = getConnection();
+            PreparedStatement stmt = conn.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery()
+        ) {
+            while (rs.next()) {
+                Student s = new Student();
+                s.setId(rs.getInt("id"));
+                s.setName(rs.getString("name"));
+                s.setAddress(rs.getString("address"));
+                s.setEmail(rs.getString("email"));
+                s.setPhone(rs.getString("phone"));
+                s.setGender(rs.getString("gender"));
+                s.setFaculty(rs.getString("faculty"));
+                studentList.add(s);
+            }
+
+            frame.dispose(); 
+            new StudentDetails(studentList);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(frame, "Error fetching student list: " + ex.getMessage());
+        }
+    }
+
+    public static void main(String[] args) {
+        new StudentForm();
+    }
+}
